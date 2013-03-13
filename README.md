@@ -1,4 +1,4 @@
-*100075*
+**100075**
 Usage of the game key generator:
 ```ruby
 key_manager = GameKeyManager.new filename: "frtt.pwd" 
@@ -13,8 +13,5 @@ To force a new key:
 ```ruby
 key_manager.game_key :force
 ```
-<<<<<<< HEAD
 
-=======
->>>>>>> e0b235f7fc55ff2fb9f524e39546e89ea73926f0
 This will overwrite the existing key file.
