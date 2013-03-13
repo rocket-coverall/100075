@@ -13,4 +13,4 @@ To force a new key:
 ```ruby
 key_manager.renew_key
 ```
-This will overwrite the existing key file with new key data.
+This will overwrite the existing key file.
