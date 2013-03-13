@@ -31,11 +31,12 @@ class GameKeyManager
     self.game_key = WebsiteLogin.game_key
   end
 
-  def game_key
-    unless load_key
-     renew_key
-    end
+  def game_key mode=:normal
+
+    renew_key if (mode == :force)||(!load_key)
+
     @game_key
+
   end
 
 end

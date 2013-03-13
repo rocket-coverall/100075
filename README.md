@@ -1,4 +1,4 @@
-100075
+*100075*
 Usage of the game key generator:
 ```ruby
 key_manager = GameKeyManager.new filename: "frtt.pwd" 
@@ -11,6 +11,7 @@ The password file should contain username and password, separated by a single ne
 
 To force a new key:
 ```ruby
-key_manager.renew_key
+key_manager.game_key :force
 ```
-This will overwrite the existing key file with new key data.
+
+This will overwrite the existing key file.
