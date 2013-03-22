@@ -1,16 +1,19 @@
-require './WebsiteLogin.rb'
+require "WebsiteLogin"
 class GameKeyManager
+
+  attr_reader :username
 
   def initialize param
 
     if param[:filename]
       File.open(param[:filename]) do |f|
         param[:username] = f.gets.strip
-        param[:password] = f.gets
+        param[:password] = f.gets.strip
       end
     end
 
     if param[:username]&&param[:password]
+      @username = param[:username]
       WebsiteLogin.set_login_data param[:username], param[:password]
     end
 
