@@ -72,10 +72,10 @@ class ServerPacket   # class for incoming game packets. it is actually just a st
 
   def read_long
 
-    return false unless size >= cursor+3
+    return false unless size >= @cursor+3
 
-    cursor += 4
-    unp cursor-4, cursor-1
+    @cursor += 4
+    unp @cursor-4, @cursor-1
 
   end
 
@@ -85,18 +85,18 @@ class ServerPacket   # class for incoming game packets. it is actually just a st
 
   def read_int
 
-    return false unless size >= cursor+1
+    return false unless size >= @cursor+1
 
-    cursor += 2
-    unp cursor-2, cursor-1
+    @cursor += 2
+    unp @cursor-2, @cursor-1
 
   end
 
   def read_utf8
     len = read_byte
-    return false unless size >= cursor+size
-    cursor += len
-    @data[cursor-len .. cursor-1]
+    return false unless size >= @cursor+size
+    @cursor += len
+    @data[@cursor-len .. @cursor-1]
   end
 
 end
