@@ -1,4 +1,4 @@
-require "WebsiteLogin"
+require "./WebsiteLogin.rb"
 class GameKeyManager
 
   attr_reader :username

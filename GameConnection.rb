@@ -1,4 +1,5 @@
-require "GameKeyManager"
+require "./GameKeyManager.rb"
+require "./GamePacket.rb"
 
 class GameConnection
 
@@ -15,15 +16,52 @@ class GameConnection
 
   def recipe card_number
     @game.recipe_request card_number
-    @game.wait_and_read :recipe # acquire parsed crafting packet
+    @game.wait_and_read :market, :recipe # acquire parsed crafting packet
   end
 
 end
 
 class GameClient # class that handles actual game server interaction and packet parsing
+
   def initialize
-    # TODO: socket connect
-    server = ""
+    @sockets = {}
+    @type_codes = {
+        login: {login: 6, zombie: 5},
+        market: {login: 50, zombie: 5, recipe: 60}
+    }
+    server_connect :login, page_ip, page_port
+  end
+
+  def page_ip
+    "74.201.81.93"
+  end
+
+  def market_ip
+    "74.201.81.93"
+  end
+
+  def page_port
+    18511
+  end
+
+  def market_port
+    18516
+  end
+
+  def server_connect server, ip, port
+    @sockets[server] = TCPSocket.open ip, port
+  end
+
+  def get_socket server
+    @sockets[server]
+  end
+
+  def self.get_type_code server, type_hash
+    @type_codes[server][type_hash]
+  end
+
+  def self.get_type_hash server, type_code
+    @type_codes[server].key type_code
   end
 
   def login_request nick, password
@@ -33,15 +71,24 @@ class GameClient # class that handles actual game server interaction and packet 
     packet.add_utf8 password
 
     send_packet :login, packet
-    page_response = wait_and_read :login
+    page_response = wait_and_read :login, :login
     raise "FATAL ERROR: PAGE SERVER LOGIN FAILED" unless page_response[:result] == :success
 
+    server_connect :market, market_ip, market_port
+
     send_packet :market, packet
-    market_response = wait_and_read :login
+    market_response = wait_and_read :market, :login
     raise "FATAL ERROR: MARKET SERVER LOGIN FAILED" unless market_response[:result] == :success
 
     page_response[:misc_data] # see THE SWORD GIRLS PROTOCOL p.3
 
+  end
+
+  def zombie_request server
+    packet = GamePacket.new :type => :zombie
+    packet.add_byte 0
+    packet.add_byte 100
+    send_packet server, packet
   end
 
   def recipe_request card_number
@@ -50,10 +97,99 @@ class GameClient # class that handles actual game server interaction and packet 
     send_packet :market, packet
   end
 
-  def wait_and_read type
-    while receive_packet[:type] != type do
+  def wait_and_read server, type
+
+    pack = receive_packet server
+
+    while pack[:type] != type do          # receive packets until one of the required type arrives
       puts "Waiting for packet of type #{type}..."
+      pack = receive_packet server
     end
+
+    pack
+
+  end
+
+  def receive_packet server  # waits for the next incoming packet on the specified server socket, then reads and parses the packet
+
+    sock = get_socket server
+    raise "FATAL ERROR: CANNOT READ PACK FROM '#{server}' SERVER - NO CONNECTION" unless sock
+    size_buffer = sock.recv 2                            # read two bytes from the stream
+    size = (size_buffer[0].ord*256+size_buffer[1].ord)-2 # subtract the two bytes from the size to acquire the rest of the packet's size
+    body = sock.recv size                                # receive size bytes
+
+    packet_stream = ServerPacket.new body, server                # create the almost-stream object to read the data from
+
+    parse_packet packet_stream, server
+
+  end
+
+  def parse_packet source, server
+    type_code = source.read_byte
+    type = get_type_hash server, type_code
+    source.skip 3  # skip to the end of the packet header
+
+    case type
+      when :login
+        pack = parse_login_packet source, server
+      when :recipe
+        pack = parse_recipe_packet source
+      when :zombie
+        pack = parse_zombie_packet source, server
+      else
+        puts "UNIDENTIFIED PACKET OF TYPE #{type_code.to_s} FROM '#{server}' SERVER"
+        pack = {}
+    end
+
+    pack
+
+  end
+
+  def parse_login_packet source, server
+
+    pack = {}
+
+    pack[:type] = :login
+    pack[:server] = server
+    pack[:size] = source.size+2
+    pack[:source] = source
+    pack[:result_code] = source.read_byte
+    pack[:result] = :success if pack[:result_code]==0
+
+    pack
+
+  end
+
+  def parse_recipe_packet source
+    pack = {type: :recipe}
+
+    pack[:source] = source
+    pack[:card_id] = source.read_long
+    pack[:num_cards] = source.read_long
+    pack[:cards] = []
+
+    puts "Recipe for card #{pack[:card_id].to_s}"
+
+    (1..pack[:num_cards]).each do
+      pack[:cards] << {id: source.read_long, count: source.read_long}
+      puts "#{pack[:cards].last[:count]}x#{pack[:cards].last[:id]}"
+    end
+
+    pack
+
+  end
+
+  def parse_zombie_packet source, server
+    {type: :zombie, source: source, server: server}
+  end
+
+
+  def send_packet server, packet
+    type = get_type_code server, packet  # convert packet type to server-specific type identifier
+    str = packet.to_s type          # acquire the complete packet string
+    sock = get_socket server
+    raise "FATAL ERROR: CANNOT SEND PACK TO '#{server}' SERVER - NO CONNECTION" unless sock
+    sock.send str, 0
   end
 
 
