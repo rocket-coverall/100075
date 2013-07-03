@@ -13,7 +13,7 @@ def load_all_the_cards r, l
     zombie if (index % 5 == 0)
     puts "Requesting recipe for card #{card_id.to_s} (#{(index+1).to_s}/#{count.to_s})..."
     card = recipe card_id
-    r << card if card
+    r[card[:card]]=card[:recipe] if card
   end
 
 
@@ -32,11 +32,11 @@ def recipe c
 end
 
 def save_db c
-  File.open("db/"+Time.now.strftime("%Y-%m-%d-%H%M%S")+"_recipe", "w") do |f|
-    f.write(c.to_s)
+  File.open("db/"+Time.now.strftime("%Y-%m-%d-%H%M%S")+"_recipes.json", "w") do |f|
+    f.write(c.to_json)
   end
-  File.open("db/recipe", "w") do |f|
-    f.write(c.to_s)
+  File.open("db/recipes.json", "w") do |f|
+    f.write(c.to_json)
   end
 end
 
@@ -50,7 +50,7 @@ end
 
 
 
-cards = []
+cards = {}
 card_list = []
 
 puts "Downloading card list..."

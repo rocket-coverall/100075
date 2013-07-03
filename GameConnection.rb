@@ -189,13 +189,13 @@ class GameClient # class that handles actual game server interaction and packet 
 
 
     pack[:num_cards] = source.read_long
-    pack[:cards] = []
+    pack[:cards] = {}
 
     puts "Received recipe for card #{pack[:card_id].to_s}"
 
 
     (1..pack[:num_cards]).each do
-      pack[:cards] << {id: source.read_long, count: source.read_long}
+      pack[:cards][source.read_long] = source.read_long
       #puts "#{pack[:cards].last[:count]}x#{pack[:cards].last[:id]}"
     end
 
